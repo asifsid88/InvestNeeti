@@ -1,13 +1,24 @@
+#!/bin/bash
 echo 'Building and packaging InvestNeeti WebApp'
-mvn clean compile package install
+mvn package
 
-echo 'Stopping tomcat server'
-sh /usr/local/Cellar/tomcat/8.5.11/libexec/bin/shutdown.sh
 
-echo 'Moving deployable war file to tomcat server'
-cp target/InvestNeeti.war /usr/local/Cellar/tomcat/8.5.11/libexec/webapps
+echo 'Stopping tomcat'
+touch temp.txt
+lsof -n -i4TCP:8080 > temp.txt
+tomcatProcess=`sed -n '2p' temp.txt`
+tomcatProcessId=$(echo $tomcatProcess | awk '{print $2}')
+if [[ -n $tomcatProcessId ]]
+then
+    echo 'Tomcat running with PID='$tomcatProcessId
+    kill -9 $tomcatProcessId
+    echo 'Tomcat running at 8080 is stopped.'
+else
+    echo 'Your tomcat is already stopped.'
+fi
 
-echo 'Starting tomcat server'
-sh /usr/local/Cellar/tomcat/8.5.11/libexec/bin/startup.sh
 
-echo 'Hit: http://localhost:8080/InvestNeeti/'
+echo 'Run InvestNeeti webapp'
+java -jar target/dependency/webapp-runner.jar target/InvestNeeti.war
+
+echo 'Webapp running on: http://localhost:8080/'
